@@ -4,29 +4,144 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laberinto</title>
     <style>
+        #inicio {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(255, 255, 255, 0.8);
+        border: 2px solid #000;
+        padding: 20px;
+        text-align: center;
+        display: none; 
+        z-index: 1;
+    }
+
+    #inicio h1 {
+        font-size: 24px;
+    }
+
+    #inicio p {
+        font-size: 16px;
+    }
+
+    #inicio button {
+        font-size: 18px;
+        padding: 10px 20px;
+        background-color: #df461b;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
         #canvas {
             border: 2px solid #000;
         }
+
+        #final {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 2px solid #000;
+    padding: 20px;
+    text-align: center;
+    display: none;
+    z-index: 1;
+}
+
+#final h1 {
+    font-size: 24px;
+}
+
+#final p {
+    font-size: 16px;
+}
+
+#final button {
+    font-size: 18px;
+    padding: 10px 20px;
+    background-color: #df461b;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
     </style>
 </head>
 <body>
+    <div id="inicio" class="hidden">
+        <h1>Laberinto del Caos</h1>
+        <p>La ciudad esta colapsando, los edificios estan quemandose, muevete por las calles y sal de la ciudad lo mas pronto posible hacia el bosque para refugiarte, ahi estaras a salvo</p>
+        <p>Utiliza las teclas W, A, S y D para moverte.</p>
+        <p>¡Buena suerte!</p>
+        <button id="startButton">Iniciar Juego</button>
+    </div>
+
+    <div id="final" class="hidden">
+        <h1>Felicidades, ¡has completado el laberinto!</h1>
+        <p>¡Bien hecho! Has escapado de la ciudad y estás a salvo en el bosque.</p>
+        <button id="restartButton">Reiniciar Juego</button>
+    </div>
+
     <center>
-       <canvas id="canvas" width="1015" height="945"></canvas> 
+       <canvas id="canvas" width="1189" height="1107"></canvas> 
     </center>
 
+    <audio id="finish">
+        <source src="final.mp3" type="audio/mpeg">
+      </audio>
+
+      <audio id="backgroundMusic" loop>
+        <source src="cancion.mp3" type="audio/mpeg">
+    </audio>
 
     <script>
         var canvas = document.getElementById("canvas");
         var ctx = canvas.getContext("2d");
-        var cellSize = 35;
+        var cellSize = 41;
         var image = new Image();
         image.src = "edificio.png"
         var image2 = new Image();
         image2.src = "bosque.png"
         var image3 = new Image();
         image3.src = "calle.png"
+        var playerX = 0;
+        var playerY = 0;
+        var image4 = new Image();
+        image4.src = "player.gif" 
+        var soundPlayed = false;
+        var juegoIniciado = false;
+        var juegoFinalizado = false;
 
+        function showInstructions() {
+        var instructions = document.getElementById("inicio");
+        var startButton = document.getElementById("startButton");
+        var backgroundMusic = document.getElementById("backgroundMusic");
+    
+        instructions.style.display = "block";
 
+        startButton.addEventListener("click", function () {
+        instructions.style.display = "none";
+        backgroundMusic.play();
+        juegoIniciado = true;
+    });
+}
+        showInstructions();
+
+        var restartButton = document.getElementById("restartButton");
+        restartButton.addEventListener("click", function () {
+   
+    final.style.display = "none";
+    playerX = 0;
+    playerY = 0;
+    soundPlayed = false;
+    juegoFinalizado = false;
+    backgroundMusic.play();
+    drawMaze();
+    drawPlayer();
+});
+
+        
         var col = Math.floor(canvas.width / cellSize);
         var fila = Math.floor(canvas.height / cellSize);
 
@@ -43,7 +158,7 @@
             [1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0],
             [1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1],
             [1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
             [1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0],
             [0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
             [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1],
@@ -60,48 +175,89 @@
             [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3],
         ];
 
-        function drawMaze() {
+    function drawMaze() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = "black";
-            ctx.lineWidth = 2;
-
-            for (let i = 0; i < fila; i++) {
-                for (let j = 0; j < col; j++) {
-                    if (maze[i][j] === 0) {  
-                        ctx.fillStyle = "#eea849" 
-                        ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
-                        ctx.drawImage(image, j * cellSize, i * cellSize, cellSize, cellSize);
-    
-                    } 
-                    if (maze[i][j] === 3) {  
-                        ctx.fillStyle = "#66d6fe"
-                        ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);             
-                        ctx.drawImage(image2, j * cellSize, i * cellSize, cellSize, cellSize); 
-
-                        
-                    }
-                    if (maze[i][j] === 1){
-                        ctx.fillStyle = "#454f58"
-                        ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
-                        ctx.drawImage(image3, j * cellSize, i * cellSize, cellSize, cellSize); 
-                    }
-
-                    
-
-                    
-
-                            
-                    
-                }
+    for (let i = 0; i < fila; i++) {
+        for (let j = 0; j < col; j++) {
+            if (maze[i][j] === 0) {
+                ctx.fillStyle = "#eea849";
+                ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                ctx.drawImage(image, j * cellSize, i * cellSize, cellSize, cellSize);
+            }
+            if (maze[i][j] === 3) {
+                ctx.fillStyle = "#66d6fe";
+                ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                ctx.drawImage(image2, j * cellSize, i * cellSize, cellSize, cellSize); 
+            }
+            if (maze[i][j] === 1) {
+                ctx.fillStyle = "#454f58";
+                ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                ctx.drawImage(image3, j * cellSize, i * cellSize, cellSize, cellSize);
             }
         }
+    }
+}
 
-        Promise.all([image, image2, image3].map(img => new Promise(resolve => img.onload = resolve)))
-          .then(() => {
+function drawPlayer() {
+    ctx.drawImage(image4, playerX * cellSize, playerY * cellSize, cellSize, cellSize);
+}
+
+function handleKeyPress(event) {
+    if (!juegoIniciado || juegoFinalizado) {
+                return;
+            }
+        switch (event.key) {
+        case "w":
+            if (playerY > 0 && maze[playerY - 1][playerX] !== 0) {
+                playerY--;
+            }
+            break;
+        case "s":
+            if (playerY < fila - 1 && maze[playerY + 1][playerX] !== 0) {
+                playerY++;
+            }
+            break;
+        case "a":
+            if (playerX > 0 && maze[playerY][playerX - 1] !== 0) {
+                playerX--;
+            }
+            break;
+        case "d":
+            if (playerX < col - 1 && maze[playerY][playerX + 1] !== 0) {
+                playerX++;
+            }
+            break;
+    }
+
+    if (maze[playerY][playerX] === 3 && !soundPlayed) {
+        var audio = document.getElementById("finish");
+        audio.play();
+        soundPlayed = true;
+        backgroundMusic.pause();
+        var final = document.getElementById("final");
+        final.style.display = "block"; 
+        juegoFinalizado = true;      
+    }
+
+    drawMaze();
+    drawPlayer();
+}
+
+document.addEventListener("keydown", function (event) {
+    if (event.key === "w" || event.key === "s" || event.key === "a" || event.key === "d") {
+        handleKeyPress(event);
+    }
+});  
+
+drawMaze(); 
+drawPlayer(); 
+
+        Promise.all([image, image2, image3,image4].map(img => new Promise(resolve => img.onload = resolve)))
+          .then(() => {           
             drawMaze(); 
-          });
-
+            drawPlayer();
+          });    
     </script>
 </body>
 </html>
-
