@@ -69,6 +69,8 @@
     </style>
 </head>
 <body>
+    <div id="timer">Tiempo: 0 segundos</div>
+
     <div id="inicio" class="hidden">
         <h1>Laberinto del Caos</h1>
         <p>La ciudad esta colapsando, los edificios estan quemandose, muevete por las calles y sal de la ciudad lo mas pronto posible hacia el bosque para refugiarte, ahi estaras a salvo</p>
@@ -80,6 +82,7 @@
     <div id="final" class="hidden">
         <h1>Felicidades, ¡has completado el laberinto!</h1>
         <p>¡Bien hecho! Has escapado de la ciudad y estás a salvo en el bosque.</p>
+        <p>Tiempo transcurrido: <span id="tiempoTranscurrido">0 segundos</span></p>
         <button id="restartButton">Reiniciar Juego</button>
     </div>
 
@@ -112,6 +115,13 @@
         var soundPlayed = false;
         var juegoIniciado = false;
         var juegoFinalizado = false;
+        var tiempoTranscurrido = 0;
+        var intervaloTiempo;
+
+        function actualizarTiempo() {
+        tiempoTranscurrido++;
+        document.getElementById("timer").innerText = "Tiempo: " + tiempoTranscurrido + " segundos";
+        }
 
         function showInstructions() {
         var instructions = document.getElementById("inicio");
@@ -124,24 +134,28 @@
         instructions.style.display = "none";
         backgroundMusic.play();
         juegoIniciado = true;
-    });
-}
+        intervaloTiempo = setInterval(actualizarTiempo, 1000);
+        });
+        }
         showInstructions();
 
         var restartButton = document.getElementById("restartButton");
         restartButton.addEventListener("click", function () {
    
-    final.style.display = "none";
-    playerX = 0;
-    playerY = 0;
-    soundPlayed = false;
-    juegoFinalizado = false;
-    backgroundMusic.play();
-    drawMaze();
-    drawPlayer();
-});
+        final.style.display = "none";
+        playerX = 0;
+        playerY = 0;
+        soundPlayed = false;
+        juegoFinalizado = false;
+        backgroundMusic.play();
+        tiempoTranscurrido = 0;
+        clearInterval(intervaloTiempo);
+        document.getElementById("timer").innerText = "Tiempo: 0 segundos";
+        intervaloTiempo = setInterval(actualizarTiempo, 1000);
+        drawMaze();
+        drawPlayer();
+        });
 
-        
         var col = Math.floor(canvas.width / cellSize);
         var fila = Math.floor(canvas.height / cellSize);
 
@@ -237,7 +251,10 @@ function handleKeyPress(event) {
         backgroundMusic.pause();
         var final = document.getElementById("final");
         final.style.display = "block"; 
-        juegoFinalizado = true;      
+        juegoFinalizado = true;  
+        clearInterval(intervaloTiempo);  
+        var tiempoTranscurridoSpan = document.getElementById("tiempoTranscurrido");
+        tiempoTranscurridoSpan.innerText = tiempoTranscurrido + " segundos";  
     }
 
     drawMaze();
@@ -250,14 +267,15 @@ document.addEventListener("keydown", function (event) {
     }
 });  
 
-drawMaze(); 
-drawPlayer(); 
+    drawMaze(); 
+    drawPlayer(); 
 
         Promise.all([image, image2, image3,image4].map(img => new Promise(resolve => img.onload = resolve)))
           .then(() => {           
             drawMaze(); 
             drawPlayer();
           });    
+
     </script>
 </body>
 </html>
