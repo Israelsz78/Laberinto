@@ -66,22 +66,37 @@
     border: none;
     cursor: pointer;
 }
+
+#humo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 200%;
+    background-color: rgba(128, 128, 128, 0.9); 
+    display: none;
+}
+
     </style>
 </head>
 <body>
-    <div id="timer">Tiempo: 0 segundos</div>
+    <div id="infoContainer">
+        <div id="timer">Tiempo: 0 segundos</div>
+        <div id="score">Puntuación: 0</div>
+    </div>
 
     <div id="inicio" class="hidden">
         <h1>Laberinto del Caos</h1>
-        <p>La ciudad esta colapsando, los edificios estan quemandose, muevete por las calles y sal de la ciudad lo mas pronto posible hacia el bosque para refugiarte, ahi estaras a salvo</p>
-        <p>Utiliza las teclas W, A, S y D para moverte.</p>
-        <p>¡Buena suerte!</p>
+        <p>La ciudad esta colapsando, los edificios estan quemandose, y en exactamente 90 segundos caera una bomba nuclear destruyendo todo, muevete por las calles de la ciudad y sal lo mas pronto posible hacia el bosque para refugiarte, ahi estaras a salvo de la explosion</p>
+        <p>Hay gemas repartidas por el laberinto intenta agarrar la mayoria pero recuerda que tienes el tiempo en tu contra ¿Podras agarrarlas todas? </p>
+        <p>Utiliza las teclas W, A, S y D (minusculas) para moverte.</p>
+        <p>¡Buena suerte! recuerda... solo tienes 90 segundos!</p>
         <button id="startButton">Iniciar Juego</button>
     </div>
 
     <div id="final" class="hidden">
         <h1>Felicidades, ¡has completado el laberinto!</h1>
-        <p>¡Bien hecho! Has escapado de la ciudad y estás a salvo en el bosque.</p>
+        <p>¡Bien hecho! Has escapado de la ciudad a tiempo y estás a salvo en el bosque.. una lastima por la ciudad y la gente que se quedo ahi, pero lo importante es que estas con vida.</p>
         <p>Tiempo transcurrido: <span id="tiempoTranscurrido">0 segundos</span></p>
         <button id="restartButton">Reiniciar Juego</button>
     </div>
@@ -89,6 +104,8 @@
     <center>
        <canvas id="canvas" width="1189" height="1107"></canvas> 
     </center>
+
+    <div id="humo"></div>
 
     <audio id="finish">
         <source src="final.mp3" type="audio/mpeg">
@@ -98,6 +115,14 @@
         <source src="cancion.mp3" type="audio/mpeg">
     </audio>
 
+    <audio id="gameOver">
+        <source src="gameover.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio id="gema">
+        <source src="gema.mp3" type="audio/mpeg">
+    </audio>
+    
     <script>
         var canvas = document.getElementById("canvas");
         var ctx = canvas.getContext("2d");
@@ -117,10 +142,65 @@
         var juegoFinalizado = false;
         var tiempoTranscurrido = 0;
         var intervaloTiempo;
+        var tiempoMaximo = 90;
+        var image5 = new Image();
+        image5.src = "diamante.png"
+        var score = 0; 
+
+        var mazeOriginal = [
+            [1, 0, 0, 0, 1, 1, 1, 1, 1, 7, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 7],
+            [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1],
+            [1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1],
+            [1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1],
+            [0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1],
+            [1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0],
+            [1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+            [0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1],
+            [1, 7, 0, 0, 0, 0, 1, 1, 0, 1, 1, 7, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+            [1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0],
+            [1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+            [1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 7, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1],
+            [1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 7],
+            [1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 7, 0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3],
+        ];
 
         function actualizarTiempo() {
         tiempoTranscurrido++;
         document.getElementById("timer").innerText = "Tiempo: " + tiempoTranscurrido + " segundos";
+
+        if (!juegoFinalizado && tiempoTranscurrido >= tiempoMaximo && !juegoFinalizado) {
+        mostrarMensajePerdido();
+        var gameOverSound = document.getElementById("gameOver");
+        gameOverSound.play();
+    }
+
+        }
+
+        function mostrarMensajePerdido() {
+        var final = document.getElementById("final");
+        final.style.display = "block";
+        final.querySelector("h1").innerText = "¡Has perdido!";
+        final.querySelector("p").innerText = "Se te acabó el tiempo, no fuiste lo suficientemente rapido y te alcanzo la explosion, bueno.. todos debemos morir en algun punto ¿No es asi? sin embargo.. ¿De esa manera quieres morir? Inténtalo de nuevo.";
+        clearInterval(intervaloTiempo);
+        juegoFinalizado = true;
+        backgroundMusic.pause();
+        var tiempoTranscurridoSpan = document.getElementById("tiempoTranscurrido");
+        tiempoTranscurridoSpan.innerText = tiempoTranscurrido + " segundos";
+        var humo = document.getElementById("humo");
+        humo.style.display = "block";
         }
 
         function showInstructions() {
@@ -141,17 +221,31 @@
 
         var restartButton = document.getElementById("restartButton");
         restartButton.addEventListener("click", function () {
-   
         final.style.display = "none";
         playerX = 0;
         playerY = 0;
+        score = 0;
+        document.getElementById("score").innerText = "Puntuación: 0";
         soundPlayed = false;
         juegoFinalizado = false;
+        var backgroundMusic = document.getElementById("backgroundMusic");
+        backgroundMusic.pause();
+        backgroundMusic.currentTime = 0;
         backgroundMusic.play();
         tiempoTranscurrido = 0;
         clearInterval(intervaloTiempo);
         document.getElementById("timer").innerText = "Tiempo: 0 segundos";
         intervaloTiempo = setInterval(actualizarTiempo, 1000);
+        var gameOverSound = document.getElementById("gameOver");
+        gameOverSound.pause();
+        gameOverSound.currentTime = 0;
+        var finish = document.getElementById("finish");
+        finish.pause();
+        finish.currentTime = 0;
+        var humo = document.getElementById("humo");
+        humo.style.display = "none";
+        maze = mazeOriginal;
+        
         drawMaze();
         drawPlayer();
         });
@@ -160,7 +254,7 @@
         var fila = Math.floor(canvas.height / cellSize);
 
         var maze = [
-            [1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1],
+            [1, 0, 0, 0, 1, 1, 1, 1, 1, 7, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 7],
             [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1],
             [1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1],
@@ -176,19 +270,20 @@
             [1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0],
             [0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
             [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1],
-            [1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 7, 0, 0, 0, 0, 1, 1, 0, 1, 1, 7, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1],
             [1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0],
             [1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
             [1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1],
+            [1, 1, 1, 7, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1],
-            [1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1],
-            [1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+            [1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 7],
+            [1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 7, 0, 1, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3],
         ];
 
+        
     function drawMaze() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -208,8 +303,16 @@
                 ctx.fillStyle = "#454f58";
                 ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
                 ctx.drawImage(image3, j * cellSize, i * cellSize, cellSize, cellSize);
+                
             }
+            if (maze[i][j] === 7) { 
+                ctx.fillStyle = "#454f58";
+                ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                ctx.drawImage(image3, j * cellSize, i * cellSize, cellSize, cellSize);
+                ctx.drawImage(image5, j * cellSize, i * cellSize, cellSize, cellSize);
         }
+    }
+    
     }
 }
 
@@ -254,11 +357,20 @@ function handleKeyPress(event) {
         juegoFinalizado = true;  
         clearInterval(intervaloTiempo);  
         var tiempoTranscurridoSpan = document.getElementById("tiempoTranscurrido");
-        tiempoTranscurridoSpan.innerText = tiempoTranscurrido + " segundos";  
+        tiempoTranscurridoSpan.innerText = tiempoTranscurrido + " segundos";
+        
     }
 
-    drawMaze();
-    drawPlayer();
+    if (maze[playerY][playerX] === 7) {
+                maze[playerY][playerX] = 1;
+                score += 10; 
+                document.getElementById("score").innerText = "Puntuación: " + score;
+                var gema = document.getElementById("gema");
+                gema.play();
+            }
+
+        drawMaze();
+        drawPlayer();
 }
 
 document.addEventListener("keydown", function (event) {
@@ -270,7 +382,7 @@ document.addEventListener("keydown", function (event) {
     drawMaze(); 
     drawPlayer(); 
 
-        Promise.all([image, image2, image3,image4].map(img => new Promise(resolve => img.onload = resolve)))
+        Promise.all([image, image2, image3,image4,image5].map(img => new Promise(resolve => img.onload = resolve)))
           .then(() => {           
             drawMaze(); 
             drawPlayer();
